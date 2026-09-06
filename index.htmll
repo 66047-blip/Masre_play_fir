@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<!--
+  Game: Eghmez Le Sahbek (اغمز لصاحبك)
+  Developed by: Ziad El-Masry
+-->
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>اغمز لصاحبك - Ziad El-Masry</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    background-color: #050505;
+    color: #fff;
+    padding: 15px;
+    margin: 0;
+  }
+  .card {
+    background: #0d0d0d;
+    max-width: 420px;
+    margin: 0 auto;
+    padding: 20px;
+    border-radius: 15px;
+    border: 2px solid #ff0055;
+    box-shadow: 0 0 25px #ff0055, inset 0 0 10px #ff0055;
+  }
+  h1 {
+    color: #ff0055;
+    text-shadow: 0 0 15px #ff0055;
+    margin: 5px 0;
+    font-size: 28px;
+  }
+  .dev {
+    color: #00ffff;
+    font-size: 13px;
+    text-shadow: 0 0 8px #00ffff;
+    margin-bottom: 15px;
+  }
+  .scary-eye {
+    width: 70px;
+    height: 70px;
+    margin: 10px auto;
+    filter: drop-shadow(0px 0px 10px #ff0055);
+  }
+  input, button {
+    padding: 12px;
+    margin: 6px 0;
+    font-size: 16px;
+    border-radius: 8px;
+    border: none;
+    outline: none;
+  }
+  input {
+    width: 75%;
+    background: #1a1a1a;
+    color: #fff;
+    border: 1px solid #ff0055;
+    box-shadow: 0 0 5px #ff0055;
+    text-align: center;
+  }
+  button {
+    background: #ff0055;
+    color: white;
+    cursor: pointer;
+    font-weight: bold;
+    width: 80%;
+    box-shadow: 0 0 15px #ff0055;
+  }
+  button:hover { background: #cc0044; }
+  ul { list-style: none; padding: 0; }
+  li {
+    background: #1a1a1a;
+    margin: 6px 0;
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid #ff0055;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .action-btn {
+    background: #333;
+    color: #fff;
+    width: auto;
+    padding: 4px 8px;
+    font-size: 12px;
+    margin-left: 4px;
+    box-shadow: none;
+  }
+  .action-btn.delete { background: #aa0000; }
+  .action-btn.edit { background: #0088cc; }
+  .player-turn {
+    font-size: 24px;
+    color: #00ffff;
+    text-shadow: 0 0 10px #00ffff;
+    margin: 15px 0;
+  }
+  .secret-box {
+    background: #151515;
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px dashed #00ffff;
+    margin: 15px 0;
+  }
+  .result-text {
+    font-size: 26px;
+    font-weight: bold;
+    margin: 15px 0;
+  }
+  .roulette-box {
+    width: 220px;
+    height: 220px;
+    border-radius: 50%;
+    border: 5px solid #00ffff;
+    box-shadow: 0 0 20px #00ffff;
+    margin: 20px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 16px;
+    color: #fff;
+    background: radial-gradient(circle, #220011, #000);
+    transition: transform 3s cubic-bezier(0.15, 0.85, 0.35, 1.2);
+    padding: 15px;
+    box-sizing: border-box;
+  }
+</style>
+</head>
+<body>
+
+<div class="card">
+  <h1>اغمز لصاحبك</h1>
+  <div class="dev">Developed by Ziad El-Masry</div>
+
+  <div class="scary-eye">
+    <svg viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M50 20C20 20 5 50 5 50C5 50 20 80 50 80C80 80 95 50 95 50C95 50 80 20 50 20Z" stroke="#ff0055" stroke-width="4"/>
+      <circle cx="50" cy="50" r="18" fill="#ff0055"/>
+      <circle cx="50" cy="50" r="7" fill="#000"/>
+    </svg>
+  </div>
+
+  <!-- 1. إدخال وتعديل الأسماء -->
+  <div id="step-names">
+    <p>أدخل أسماء اللاعبين:</p>
+    <input type="text" id="playerName" placeholder="اسم اللاعب...">
+    <br>
+    <button onclick="addPlayer()">إضافة لاعب</button>
+    <ul id="playersList"></ul>
+    <br>
+    <button onclick="startGame()" style="background:#00ffff; color:#000;">بدء اللعبة واختيار الغماز 🎲</button>
+  </div>
+
+  <!-- 2. التمرير بين اللاعبين -->
+  <div id="step-turn" style="display:none;">
+    <p>ادي التليفون لـ:</p>
+    <div id="turnName" class="player-turn"></div>
+    
+    <button id="showRoleBtn" onclick="revealRole()" style="background:#00ffff; color:#000;">وريني الغماز 👁️</button>
+
+    <div id="secretArea" class="secret-box" style="display:none;">
+      <div id="resultText" class="result-text"></div>
+      <br>
+      <button onclick="nextPlayerTurn()" style="background:#ff0055;">اخفي الشاشة وادي الفون للي بعدك 👍</button>
+    </div>
+  </div>
+
+  <!-- 3. شاشة اللعب العامة وعجلة الأحكام -->
+  <div id="step-play" style="display:none;">
+    <div class="roulette-box" id="roulette">؟</div>
+    <button onclick="spinRoulette()" style="background:#00ffff; color:#000;">لف عجلة الأحكام 🎡</button>
+    <br><br>
+    <button onclick="showGamazIdentity()" style="background:#ff0055;">اعرفوا مين كان الغماز 👁️</button>
+  </div>
+
+  <!-- 4. كشف الغماز بالنهاية مع إمكانية الرجوع للروليت -->
+  <div id="step-end" style="display:none;">
+    <h2 style="color:#00ffff;">الغماز الحقيقي هو:</h2>
+    <div id="gamazIdentity" style="font-size:30px; color:#ff0055; margin:20px 0; font-weight:bold;"></div>
+    
+    <button onclick="backToRoulette()" style="background:#00ffff; color:#000;">الرجوع للروليت والأحكام 🎡</button>
+    <br>
+    <button onclick="startGame()" style="background:#ff0055;">جولة جديدة بنفس الأسماء 🔄</button>
+    <button onclick="editPlayers()" style="background:#333;">تعديل قائمة الأسماء ⚙️</button>
+  </div>
+
+</div>
+
+<script>
+let players = [];
+let gamazPlayer = "";
+let currentTurnIndex = 0;
+
+// قائمة 50 حكم مصري كوميدي
+const egyptianPunishments = [
+  "غني مقطع مهرجانات بصوت عالي جداً 🎤",
+  "اعمل نفسك بتطلب أوردر كشري من واحد جنبك 🍲",
+  "قوم أرقص بلدي 10 ثواني من غير مزيكا 💃",
+  "قل نكتة بايخة ولو حد ضحك ليك جنيه 😂",
+  "قل أسرع موقف محرج حصلك في المدرسة 🏫",
+  "سقف واهتف للي على يمينك كأنه جاب جول ⚽",
+  "اعمل 10 ضغط وأنت بتقول أنا أسطورة 💪",
+  "قل اسم أكتر واحد بتخاف منه في القعدة 🙈",
+  "قل للي جنبك 3 مميزات و3 عيوب فيه بشفافية 🤐",
+  "قل بيت شعر أو موال مصري بصوت طرب 🎶",
+  "مثل مشهد كوميدي من فيلم مصري مشهور 🎬",
+  "اعمل نفسك مذيع واعمل لقاء صحفي مع اللي جنبك 🎙️",
+  "قل سر غريب مفيش حد من القعدة يعرفه 🤫",
+  "شغل أغنية واعمل نفسك المطرب بتاعها 🎵",
+  "قل نكتة بصوت واحد زعلان جداً 😢",
+  "اطلب من واحد في القعدة يختار لك حكم جديد 😈",
+  "اعمل نفسك بتبيع طماطم في السوق بصوت عالي 🍅",
+  "قل 3 حاجات بتحبها في أكتر واحد بتكرهه 😅",
+  "شبه كل واحد في القعدة بشخصية كرتونية 🦸",
+  "اتكلم بلغة عربية فصحى لمدة جولتين كاملين 📜",
+  "قل أكتر أكله بتموت فيها بس بطريقة درامية 🍔",
+  "امشي في الأوضة زي الضابط في الأفلام 👮",
+  "اعمل نفسك بتشرح درس رياضيات معقد جداً 📐",
+  "قل إعلان قديم من إعلانات التلفزيون بالتفصيل 📺",
+  "غني أغنية أطفال وأنت بتعيط 👶",
+  "قول كلمة سرية للي جنبك في أذنه بس بصوت عالي 👂",
+  "مثل إنك بتكلم حد في التليفون وبتتخانق معاه 📞",
+  "قل موقف حسيت فيه إنك عبقري بس طلع غباء 🧠",
+  "اعمل صوت 3 حيوانات مختلفة ورا بعض 🦁",
+  "قوم سلم على كل واحد في القعدة وقوله بحبك يا فنان 🤝",
+  "قل أكتر اسم دلع بتكره حد يناديك بيه 🙈",
+  "اعمل نفسك معلق رياضي على حركة يعملها اللي جنبك 🎙️",
+  "قول للي قصادك إيه أكتر حاجة بتنرفزك منه 😤",
+  "غمض عينك وادرس وش اللي جنبك بإيدك واعطف عليه 🙈",
+  "حاول تضحك كل الموجودين في 10 ثواني بس ⏱️",
+  "احكي حلم غريب حلمت بيه قبل كده 💤",
+  "اعمل نفسك سائق ميكروباص وبينادي على المحطة 🚐",
+  "قل جملة مفيدة بس باستعمال كلمات ملهاش علاقة ببعض 🧩",
+  "اعمل 5 تمارين بوش أب بإيد واحدة (أو حاول على الأقل) 🏋️",
+  "قل للي على شمالك نصيحة حكيمة جداً 🧙",
+  "افضل باصص في عين اللي جنبك من غير ما ترمش 15 ثانية 👁️",
+  "قل أكتر عادة غريبة بتعملها وأنت لوحدك 🏠",
+  "مثل إنك شربت شاي شطة بالخطأ ☕",
+  "غني أي أغنية باللغة الإنجليزية حتى لو الكلام غلط 🇬🇧",
+  "قل 3 أسماء أنبياء ورا بعض بسرعة جداً 📖",
+  "قل اسم أول كرتون كنت بتحبه وأنت صغير 📺",
+  "اعمل نفسك بتشحت من اللي جنبك بأسلوب كوميدي 💰",
+  "احكي قصة خيالية قصيرة من تأليفك في دقيقة ⏳",
+  "غير مكانك واقعد مكان أكتر واحد هادي في القعدة 🪑",
+  "اعترف بأكبر مقلب عملته في صاحبك قبل كده 💣"
+];
+
+function addPlayer() {
+  const input = document.getElementById("playerName");
+  const name = input.value.trim();
+  if (name && !players.includes(name)) {
+    players.push(name);
+    input.value = "";
+    renderPlayers();
+  }
+}
+
+function renderPlayers() {
+  const ul = document.getElementById("playersList");
+  ul.innerHTML = players.map((p, index) => `
+    <li>
+      <span>${p}</span>
+      <div>
+        <button class="action-btn edit" onclick="editPlayerName(${index})">تعديل</button>
+        <button class="action-btn delete" onclick="deletePlayer(${index})">حذف</button>
+      </div>
+    </li>
+  `).join("");
+}
+
+function editPlayerName(index) {
+  const newName = prompt("أدخل الاسم الجديد:", players[index]);
+  if (newName && newName.trim() !== "") {
+    players[index] = newName.trim();
+    renderPlayers();
+  }
+}
+
+function deletePlayer(index) {
+  players.splice(index, 1);
+  renderPlayers();
+}
+
+function startGame() {
+  if (players.length < 3) {
+    alert("برجاء إدخال 3 لاعبين على الأقل!");
+    return;
+  }
+  
+  const randomIndex = Math.floor(Math.random() * players.length);
+  gamazPlayer = players[randomIndex];
+  currentTurnIndex = 0;
+
+  document.getElementById("step-names").style.display = "none";
+  document.getElementById("step-end").style.display = "none";
+  document.getElementById("step-turn").style.display = "block";
+
+  updateTurnUI();
+}
+
+function updateTurnUI() {
+  document.getElementById("turnName").innerText = players[currentTurnIndex];
+  document.getElementById("showRoleBtn").style.display = "inline-block";
+  document.getElementById("secretArea").style.display = "none";
+}
+
+function revealRole() {
+  const currentPlayer = players[currentTurnIndex];
+  const resultText = document.getElementById("resultText");
+
+  document.getElementById("showRoleBtn").style.display = "none";
+  document.getElementById("secretArea").style.display = "block";
+
+  if (currentPlayer === gamazPlayer) {
+    resultText.innerHTML = "<span style='color:#ff0055;'>أنت الغماز 👁️</span>";
+  } else {
+    resultText.innerHTML = "<span style='color:#00ffff;'>مش أنت</span>";
+  }
+}
+
+function nextPlayerTurn() {
+  currentTurnIndex++;
+  if (currentTurnIndex < players.length) {
+    updateTurnUI();
+  } else {
+    document.getElementById("step-turn").style.display = "none";
+    document.getElementById("step-play").style.display = "block";
+  }
+}
+
+function spinRoulette() {
+  const roulette = document.getElementById("roulette");
+  const randomIndex = Math.floor(Math.random() * egyptianPunishments.length);
+  const selectedPunishment = egyptianPunishments[randomIndex];
+
+  roulette.style.transform = "rotate(1080deg)";
+  roulette.innerText = "جاري اللف...";
+
+  setTimeout(() => {
+    roulette.style.transform = "rotate(0deg)";
+    roulette.innerText = selectedPunishment;
+  }, 1500);
+}
+
+function showGamazIdentity() {
+  document.getElementById("step-play").style.display = "none";
+  document.getElementById("step-end").style.display = "block";
+  document.getElementById("gamazIdentity").innerText = `👁️ ${gamazPlayer} 👁️`;
+}
+
+function backToRoulette() {
+  document.getElementById("step-end").style.display = "none";
+  document.getElementById("step-play").style.display = "block";
+}
+
+function editPlayers() {
+  document.getElementById("step-end").style.display = "none";
+  document.getElementById("step-names").style.display = "block";
+  renderPlayers();
+}
+</script>
+
+</body>
+</html>
