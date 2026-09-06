@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>كوابيس الشلة - أونلاين ومايك 🧟‍♂️</title>
+  <!-- مكتبة PeerJS للربط أونلاين والمايك بدون سيرفر -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
+  <style>
+    :root {
+      --primary-red: #ff0033;
+      --dark-bg: #05020a;
+      --card-bg: rgba(15, 5, 20, 0.94);
+      --border-glow: rgba(255, 0, 51, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--dark-bg);
+      color: #eaeaea;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 15px;
+      overflow-x: hidden;
+    }
+
+    .shake { animation: shakeAnim 0.4s ease-in-out; }
+    @keyframes shakeAnim {
+      0% { transform: translate(0, 0); }
+      20% { transform: translate(-8px, 5px); }
+      40% { transform: translate(8px, -5px); }
+      60% { transform: translate(-5px, -2px); }
+      80% { transform: translate(5px, 2px); }
+      100% { transform: translate(0, 0); }
+    }
+
+    .game-container {
+      width: 100%;
+      max-width: 620px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 0 40px rgba(255, 0, 51, 0.3), inset 0 0 15px rgba(0,0,0,0.8);
+      position: relative;
+    }
+
+    .header-title { text-align: center; margin-bottom: 20px; }
+    .header-title h1 { font-size: 2.2rem; color: var(--primary-red); text-shadow: 0 0 12px rgba(255, 0, 51, 0.8); }
+
+    /* أنماط تبويب أونلاين / أوفلاين */
+    .mode-switch-container {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 5px;
+      border-radius: 12px;
+      border: 1px solid rgba(255, 0, 51, 0.3);
+    }
+
+    .mode-tab {
+      flex: 1;
+      padding: 10px;
+      text-align: center;
+      border: none;
+      background: transparent;
+      color: #aaa;
+      font-weight: bold;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+
+    .mode-tab.active {
+      background: var(--primary-red);
+      color: #fff;
+      box-shadow: 0 0 10px rgba(255, 0, 51, 0.5);
+    }
+
+    .story-select-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-bottom: 15px;
+    }
+
+    .story-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+
+    .story-card.selected {
+      border-color: var(--primary-red);
+      background: rgba(255, 0, 51, 0.15);
+    }
+
+    .player-card, .online-box {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 10px;
+      border: 1px solid rgba(255, 0, 51, 0.2);
+    }
+
+    input {
+      width: 100%;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 0, 51, 0.4);
+      background: rgba(0, 0, 0, 0.6);
+      color: #fff;
+      font-size: 0.95rem;
+      outline: none;
+      margin-top: 5px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+      color: #fff;
+      transition: 0.3s;
+    }
+
+    .btn-main { background: linear-gradient(135deg, #ff0033, #88001b); box-shadow: 0 4px 20px rgba(255, 0, 51, 0.5); }
+    .btn-secondary { background: rgba(255, 255, 255, 0.08); border: 1px dashed rgba(255, 0, 51, 0.5); }
+    .btn-choice { background: rgba(20, 10, 30, 0.8); border: 1px solid var(--border-glow); text-align: right; padding: 12px 15px; }
+
+    .room-code-badge {
+      background: #ff0033;
+      color: #fff;
+      font-size: 1.4rem;
+      font-weight: bold;
+      text-align: center;
+      padding: 10px;
+      border-radius: 10px;
+      letter-spacing: 3px;
+      margin: 10px 0;
+      user-select: all;
+    }
+
+    .hidden { display: none !important; }
+
+    .story-box {
+      background: rgba(0, 0, 0, 0.7);
+      border-left: 4px solid var(--primary-red);
+      padding: 18px;
+      border-radius: 8px;
+      margin: 15px 0;
+      line-height: 1.7;
+    }
+
+    .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+    .icon-btn { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,0,51,0.5); color: #fff; padding: 6px 12px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; }
+    .icon-btn.active-mic { background: #00c853; border-color: #00e676; }
+
+    .status-board { margin-top: 15px; background: rgba(0,0,0,0.5); border-radius: 10px; padding: 12px; font-size: 0.88rem; }
+    .status-row { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }
+
+    /* قائمة الأونلاين أسفل اليمين في الشاشة الرئيسية */
+    .bottom-right-mode {
+      margin-top: 15px;
+      padding: 10px;
+      border-top: 1px solid rgba(255, 0, 51, 0.3);
+      display: flex;
+      justify-content: flex-end;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="game-container" id="game-box">
+
+    <!-- شاشة الإعداد الرئيسية -->
+    <div id="setup-screen">
+      <div class="header-title">
+        <h1>💀 كوابيس الشلة</h1>
+        <p>اختر طريقة اللعب وأبدأ المغامرة</p>
+      </div>
+
+      <!-- تبويب اختيار الوضع (أونلاين / أوفلاين) -->
+      <div class="mode-switch-container">
+        <button class="mode-tab active" id="tab-offline" onclick="switchMode('offline')">📱 أوفلاين (جهاز واحد)</button>
+        <button class="mode-tab" id="tab-online" onclick="switchMode('online')">🌐 أونلاين (مع أصحابك)</button>
+      </div>
+
+      <!-- اختيار القصة -->
+      <p style="margin-bottom: 8px; font-weight: bold; color: #ff0033;">اختر القصة المرعبة:</p>
+      <div class="story-select-grid">
+        <div class="story-card selected" onclick="selectStory(0, this)">
+          <h3 style="color:#ff4d6d;">🏛️ 1. قصر عائلة الملاط الملعون</h3>
+          <p style="font-size: 0.8rem; color:#aaa;">أشباح وطقوس غريبة داخل قصر مهجور.</p>
+        </div>
+        <div class="story-card" onclick="selectStory(1, this)">
+          <h3 style="color:#ff4d6d;">🏥 2. مستشفى العزل رقم 9</h3>
+          <p style="font-size: 0.8rem; color:#aaa;">مستشفى معزولة تم فيها تحويل المرضى لمساخين.</p>
+        </div>
+        <div class="story-card" onclick="selectStory(2, this)">
+          <h3 style="color:#ff4d6d;">🌲 3. غابة الظلال المفقودة</h3>
+          <p style="font-size: 0.8rem; color:#aaa;">غابة يختفي فيها كل من يدخل بعد غروب الشمس.</p>
+        </div>
+      </div>
+
+      <!-- نموذج وضع الأوفلاين -->
+      <div id="offline-form">
+        <p style="margin-bottom: 8px; font-weight: bold; color: #ff0033;">أسماء اللاعبين (على نفس الجهاز):</p>
+        <div id="players-container"></div>
+        <button class="btn btn-secondary" onclick="addPlayerField()">+ إضافة لاعب آخر</button>
+        <button class="btn btn-main" onclick="startOfflineGame()">بدء اللعبة محلياً 🩸</button>
+      </div>
+
+      <!-- نموذج وضع الأونلاين -->
+      <div id="online-form" class="hidden">
+        <div class="online-box">
+          <label style="font-weight: bold;">اسمك في اللعبة:</label>
+          <input type="text" id="online-player-name" placeholder="أدخل اسمك هنا...">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+          <button class="btn btn-main" onclick="createRoom()">إنشاء روم جديدة 🏠</button>
+          <button class="btn btn-secondary" onclick="showJoinUI()">الانضمام لروم 🔑</button>
+        </div>
+
+        <!-- واجهة كود الغرفة وتجهيز اللاعبين -->
+        <div id="room-lobby" class="hidden" style="margin-top: 15px;">
+          <p style="text-align: center; font-size: 0.9rem;">شارك هذا الكود مع أصحابك للانضمام:</p>
+          <div class="room-code-badge" id="display-room-code">----</div>
+          <div class="status-board" id="connected-players-list">
+            <strong>اللاعبون المتصلون بالروم:</strong>
+          </div>
+          <button class="btn btn-main hidden" id="host-start-btn" onclick="startOnlineGame()">بدء اللعبة للجميع 🚀</button>
+        </div>
+
+        <!-- واجهة إدخال كود الانضمام -->
+        <div id="join-input-box" class="hidden" style="margin-top: 15px;">
+          <input type="text" id="join-code-input" placeholder="أدخل كود الروم (مثال: ROOM-1234)">
+          <button class="btn btn-main" onclick="joinRoom()">دخول الروم 🚪</button>
+        </div>
+      </div>
+
+      <!-- خيار تبديل الوضع سريعاً أسفل اليمين -->
+      <div class="bottom-right-mode">
+        <span style="font-size: 0.8rem; color:#aaa; cursor:pointer;" onclick="toggleModeBottom()">⚙️ الوضع الحالي: <b id="current-mode-label" style="color:#ff0033;">أوفلاين</b> (اضغط للتغيير)</span>
+      </div>
+    </div>
+
+    <!-- شاشة اللعب الأساسية -->
+    <div id="game-screen" class="hidden">
+      <div class="top-bar">
+        <button class="icon-btn" onclick="location.reload()">🔄 القائمة الرئيسية</button>
+        <div>
+          <button class="icon-btn" id="mic-btn" onclick="toggleMicrophone()">🎙️ المايك: معطل</button>
+          <button class="icon-btn" id="voice-btn" onclick="toggleVoice()">🔊 الراوي: مفعل</button>
+        </div>
+      </div>
+
+      <div class="player-indicator" style="color:#ff4d6d; font-weight:bold; margin-bottom:10px;">
+        <span id="current-player-tag">دور: -</span>
+        <span id="chapter-tag" style="font-size: 0.85rem; color: #aaa;">الفصل 1</span>
+      </div>
+
+      <div class="story-box" id="story-text">جاري تحميل القصة...</div>
+
+      <div id="choices-container" style="display: flex; flex-direction: column; gap: 10px;"></div>
+
+      <div class="status-board" id="status-board"></div>
+    </div>
+
+    <!-- شاشة النهاية -->
+    <div id="end-screen" class="hidden">
+      <div class="header-title">
+        <h1 id="end-title">نهاية الكابوس</h1>
+      </div>
+      <div class="story-box" id="end-story-text"></div>
+      <div class="status-board" id="final-status-board"></div>
+      <button class="btn btn-main" onclick="location.reload()">اللعب من جديد 🔄</button>
+    </div>
+
+  </div>
+
+  <!-- مشغل الصوت لتسمع أصحابك المايك أونلاين -->
+  <audio id="remote-audio" autoplay></audio>
+
+  <script>
+    // بيانات القصص
+    const storiesData = [
+      {
+        title: "قصر عائلة الملاط الملعون",
+        chapters: [
+          {
+            text: "وقفتم أمام البوابة الحديدية للقصر المهجور. انغلق الباب خلفكم بسلسلة ثقيلة وقفل صدئ! سمعتم صوت خطوات ثقيلة في الطابق العلوي وصوت بكاء طفل من السرداب.",
+            choices: [
+              { text: "الصعود للطابق العلوي لاستكشاف مصدر الخطوات", health: -15, result: "ظهر شبح هائل بلا وجه وهجم عليكم!" },
+              { text: "النزول فوراً إلى السرداب المظلم لمعرفة سر الطفل", health: -25, result: "السرداب مليء بجثث محنطة واستيقظ إحداها!" },
+              { text: "البحث عن أداة لكسر قفل الباب الرئيسي", health: 0, result: "وجدتم عتلة قديمة والقفل محتاج مفتاح خاص." }
+            ]
+          },
+          {
+            text: "في ممر اللوحات الزيتية، لاحظتم أن العيون تتحرك! خرجت يد هيكلية من لوحة وحاولت سحب أحدكم إلى داخل الإطار!",
+            choices: [
+              { text: "ضرب اليد بالعتلة الحديدية وإحراق اللوحة", health: -10, result: "صرخت اللوحة واحترقت لكن الدخان خنقكم!" },
+              { text: "الجري بأقصى سرعة لآخر الممر", health: -20, result: "تعثرتم في الأثاث وأصبت بجروح!" },
+              { text: "التراجع ومحاولة إغلاق باب الممر", health: -5, result: "تم حصر اليد خلف الباب بنجاح." }
+            ]
+          }
+        ]
+      },
+      {
+        title: "مستشفى العزل رقم 9",
+        chapters: [
+          {
+            text: "دخلتم مستشفى المجانين المهجورة. هناك تسجيل يعمل بصوت طبيب يصرخ: 'المسخ رقم 404 طليق.. لا تلتفتوا!'",
+            choices: [
+              { text: "تدمير جهاز التسجيل فوراً", health: -10, result: "الصوت جلب المسخ واقترب منكم بسرعة!" },
+              { text: "الدخول لغرفة الأطباء للبحث عن خريطة", health: 0, result: "عثرتم على خريطة وتجنبتم الخطر." },
+              { text: "الركض نحو غرفة العمليات للاختباء", health: -25, result: "سقطت عليكم الأدوات الجراحية الصدئة!" }
+            ]
+          }
+        ]
+      },
+      {
+        title: "غابة الظلال المفقودة",
+        chapters: [
+          {
+            text: "تعطلت سيارتكم في منتصف غابة مظلمة. بدأت أصوات همس تنبعث بين الأشجار مع عيون حمراء متوهجة.",
+            choices: [
+              { text: "البقاء داخل السيارة وإغلاق النوافذ", health: -20, result: "بدأت الكائنات تهشيم الزجاج!" },
+              { text: "إشعال شعلة نار والمشي معاً", health: 0, result: "النار أبقت الظلال بعيدة عنكم." },
+              { text: "الجري باتجاه صوت النهر البعيد", health: -15, result: "سقطتم في حفرة شوك مسمومة!" }
+            ]
+          }
+        ]
+      }
+    ];
+
+    // المتغيرات العامة
+    let currentMode = 'offline'; // 'offline' or 'online'
+    let selectedStoryIndex = 0;
+    let players = [];
+    let currentChapterIndex = 0;
+    let currentPlayerIndex = 0;
+    let voiceEnabled = true;
+
+    // متغيرات الأونلاين والمايك (PeerJS)
+    let peer = null;
+    let myPeerId = '';
+    let roomCode = '';
+    let isHost = false;
+    let connections = []; // للـ Host
+    let hostConnection = null; // للـ Client
+    let localStream = null;
+    let micEnabled = false;
+
+    // --- إدارة الأوضاع (أونلاين / أوفلاين) ---
+    function switchMode(mode) {
+      currentMode = mode;
+      document.getElementById('tab-offline').classList.toggle('active', mode === 'offline');
+      document.getElementById('tab-online').classList.toggle('active', mode === 'online');
+      document.getElementById('offline-form').classList.toggle('hidden', mode !== 'offline');
+      document.getElementById('online-form').classList.toggle('hidden', mode !== 'online');
+      document.getElementById('current-mode-label').innerText = mode === 'offline' ? 'أوفلاين' : 'أونلاين';
+    }
+
+    function toggleModeBottom() {
+      switchMode(currentMode === 'offline' ? 'online' : 'offline');
+    }
+
+    function selectStory(index, el) {
+      selectedStoryIndex = index;
+      document.querySelectorAll('.story-card').forEach(c => c.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    // إضافة حقول أوفلاين
+    function addPlayerField() {
+      const container = document.getElementById('players-container');
+      const count = container.children.length + 1;
+      const card = document.createElement('div');
+      card.className = 'player-card';
+      card.innerHTML = `<input type="text" placeholder="اسم اللاعب ${count}" class="offline-name-input">`;
+      container.appendChild(card);
+    }
+    addPlayerField();
+    addPlayerField();
+
+    // --- منطق الأونلاين والـ PeerJS ---
+    function generateRoomCode() {
+      return 'ROOM-' + Math.floor(1000 + Math.random() * 9000);
+    }
+
+    function createRoom() {
+      const name = document.getElementById('online-player-name').value.trim();
+      if (!name) return alert("يرجى كتابة اسمك أولاً!");
+
+      isHost = true;
+      roomCode = generateRoomCode();
+      players = [{ name: name, health: 100, status: "حي", id: 'host' }];
+
+      // إنشاء اتصال PeerJS
+      peer = new Peer(roomCode);
+
+      peer.on('open', (id) => {
+        myPeerId = id;
+        document.getElementById('display-room-code').innerText = roomCode;
+        document.getElementById('room-lobby').classList.remove('hidden');
+        document.getElementById('host-start-btn').classList.remove('hidden');
+        document.getElementById('join-input-box').classList.add('hidden');
+        updateLobbyUI();
+      });
+
+      peer.on('connection', (conn) => {
+        connections.push(conn);
+        conn.on('data', (data) => handleHostIncomingData(conn, data));
+      });
+
+      // استقبال المكالمات الصوتية (المايك)
+      peer.on('call', (call) => {
+        call.answer(localStream);
+        call.on('stream', (remoteStream) => {
+          document.getElementById('remote-audio').srcObject = remoteStream;
+        });
+      });
+
+      peer.on('error', (err) => alert("خطأ في الاتصال: " + err.type));
+    }
+
+    function showJoinUI() {
+      document.getElementById('join-input-box').classList.remove('hidden');
+      document.getElementById('room-lobby').classList.add('hidden');
+    }
+
+    function joinRoom() {
+      const name = document.getElementById('online-player-name').value.trim();
+      const code = document.getElementById('join-code-input').value.trim().toUpperCase();
+
+      if (!name || !code) return alert("أدخل اسمك وكود الروم بشكل صحيح!");
+
+      isHost = false;
+      peer = new Peer();
+
+      peer.on('open', (id) => {
+        myPeerId = id;
+        hostConnection = peer.connect(code);
+
+        hostConnection.on('open', () => {
+          // إرسال طلب الانضمام للهوست
+          hostConnection.send({ type: 'JOIN', name: name, peerId: myPeerId });
+          document.getElementById('display-room-code').innerText = code;
+          document.getElementById('room-lobby').classList.remove('hidden');
+          document.getElementById('join-input-box').classList.add('hidden');
+        });
+
+        hostConnection.on('data', (data) => handleClientIncomingData(data));
+      });
+
+      peer.on('call', (call) => {
+        call.answer(localStream);
+        call.on('stream', (remoteStream) => {
+          document.getElementById('remote-audio').srcObject = remoteStream;
+        });
+      });
+    }
+
+    // معالجة البيانات لدى الهوست
+    function handleHostIncomingData(conn, data) {
+      if (data.type === 'JOIN') {
+        players.push({ name: data.name, health: 100, status: "حي", id: data.peerId });
+        broadcastState();
+        updateLobbyUI();
+      } else if (data.type === 'MAKE_CHOICE') {
+        handleChoice(data.choice);
+      }
+    }
+
+    // معالجة البيانات لدى العميل (Client)
+    function handleClientIncomingData(data) {
+      if (data.type === 'LOBBY_UPDATE') {
+        players = data.players;
+        updateLobbyUI();
+      } else if (data.type === 'START_GAME') {
+        selectedStoryIndex = data.storyIndex;
+        players = data.players;
+        currentChapterIndex = 0;
+        currentPlayerIndex = 0;
+        document.getElementById('setup-screen').classList.add('hidden');
+        document.getElementById('game-screen').classList.remove('hidden');
+        loadChapter();
+      } else if (data.type === 'SYNC_STATE') {
+        currentChapterIndex = data.currentChapterIndex;
+        currentPlayerIndex = data.currentPlayerIndex;
+        players = data.players;
+        loadChapter();
+      }
+    }
+
+    function broadcastState() {
+      const payload = {
+        type: 'LOBBY_UPDATE',
+        players: players
+      };
+      connections.forEach(conn => conn.send(payload));
+    }
+
+    function updateLobbyUI() {
+      const list = document.getElementById('connected-players-list');
+      list.innerHTML = '<strong>اللاعبون المتصلون بالروم:</strong>';
+      players.forEach(p => {
+        list.innerHTML += `<div class="status-row"><span>👤 ${p.name}</span><span>جاهز</span></div>`;
+      });
+    }
+
+    // --- المحادثة الصوتية (المايك) ---
+    async function toggleMicrophone() {
+      const btn = document.getElementById('mic-btn');
+      if (!micEnabled) {
+        try {
+          localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+          micEnabled = true;
+          btn.innerText = "🎙️ المايك: شغال";
+          btn.classList.add('active-mic');
+
+          // الاتصال صوتياً بالجميع في الروم
+          if (isHost) {
+            connections.forEach(conn => {
+              peer.call(conn.peer, localStream);
+            });
+          } else if (hostConnection) {
+            peer.call(hostConnection.peer, localStream);
+          }
+        } catch (err) {
+          alert("تعذر الوصول للمايك، تأكد من إعطاء الصلاحية للمتصفح!");
+        }
+      } else {
+        if (localStream) {
+          localStream.getTracks().forEach(track => track.stop());
+        }
+        micEnabled = false;
+        btn.innerText = "🎙️ المايك: معطل";
+        btn.classList.remove('active-mic');
+      }
+    }
+
+    // --- لبدء اللعبة ---
+    function startOfflineGame() {
+      const inputs = document.querySelectorAll('.offline-name-input');
+      players = [];
+      inputs.forEach(inp => {
+        const val = inp.value.trim();
+        if (val) players.push({ name: val, health: 100, status: "حي" });
+      });
+
+      if (players.length < 1) return alert("أدخل اسم لاعب واحد على الأقل!");
+
+      currentChapterIndex = 0;
+      currentPlayerIndex = 0;
+      document.getElementById('setup-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+      loadChapter();
+    }
+
+    function startOnlineGame() {
+      if (!isHost) return;
+      const payload = {
+        type: 'START_GAME',
+        storyIndex: selectedStoryIndex,
+        players: players
+      };
+      connections.forEach(conn => conn.send(payload));
+
+      document.getElementById('setup-screen').classList.add('hidden');
+      document.getElementById('game-screen').classList.remove('hidden');
+      loadChapter();
+    }
+
+    // --- حلقة اللعبة الأساسية ---
+    function loadChapter() {
+      const story = storiesData[selectedStoryIndex];
+      const chapter = story.chapters[currentChapterIndex];
+      const currentPlayer = players[currentPlayerIndex];
+
+      if (currentPlayer.health <= 0) {
+        nextTurn();
+        return;
+      }
+
+      document.getElementById('chapter-tag').innerText = `${story.title} - الفصل ${currentChapterIndex + 1}`;
+      document.getElementById('current-player-tag').innerText = `🔦 الدور على: ${currentPlayer.name} (${currentPlayer.health}%)`;
+
+      const narrative = `${currentPlayer.name}، ${chapter.text}`;
+      document.getElementById('story-text').innerText = narrative;
+
+      let speechText = narrative + ". الاختيارات هي: ";
+      const container = document.getElementById('choices-container');
+      container.innerHTML = '';
+
+      chapter.choices.forEach((choice, idx) => {
+        speechText += ` الخيار ${idx + 1}: ${choice.text}.`;
+        const btn = document.createElement('button');
+        btn.className = 'btn btn-choice';
+        btn.innerText = `${idx + 1}. ${choice.text}`;
+
+        // تمكين الزر فقط للاعب صاحب الدور في الأونلاين
+        if (currentMode === 'online') {
+          const isMyTurn = (isHost && currentPlayer.id === 'host') || (!isHost && currentPlayer.id === myPeerId);
+          btn.disabled = !isMyTurn;
+          if (!isMyTurn) btn.style.opacity = '0.5';
+        }
+
+        btn.onclick = () => {
+          if (currentMode === 'online' && !isHost) {
+            hostConnection.send({ type: 'MAKE_CHOICE', choice: choice });
+          } else {
+            handleChoice(choice);
+          }
+        };
+        container.appendChild(btn);
+      });
+
+      speakText(speechText);
+      updateStatusBoard();
+    }
+
+    function handleChoice(choice) {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+
+      const player = players[currentPlayerIndex];
+      player.health += choice.health;
+      if (player.health <= 0) {
+        player.health = 0;
+        player.status = "مات 💀";
+      }
+
+      alert(`${choice.result}\nتأثير القرار على ${player.name}: ${choice.health} طاقة.`);
+
+      nextTurn();
+    }
+
+    function nextTurn() {
+      currentPlayerIndex++;
+      const story = storiesData[selectedStoryIndex];
+
+      if (currentPlayerIndex >= players.length) {
+        currentPlayerIndex = 0;
+        currentChapterIndex++;
+      }
+
+      const alive = players.filter(p => p.health > 0);
+
+      if (currentChapterIndex >= story.chapters.length || alive.length === 0) {
+        showEndGame();
+      } else {
+        if (currentMode === 'online' && isHost) {
+          connections.forEach(conn => conn.send({
+            type: 'SYNC_STATE',
+            currentChapterIndex: currentChapterIndex,
+            currentPlayerIndex: currentPlayerIndex,
+            players: players
+          }));
+        }
+        loadChapter();
+      }
+    }
+
+    function speakText(text) {
+      if (!voiceEnabled || !('speechSynthesis' in window)) return;
+      window.speechSynthesis.cancel();
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = 'ar-EG';
+      u.pitch = 0.1;
+      u.rate = 0.8;
+      window.speechSynthesis.speak(u);
+    }
+
+    function toggleVoice() {
+      voiceEnabled = !voiceEnabled;
+      document.getElementById('voice-btn').innerText = voiceEnabled ? "🔊 الراوي: مفعل" : "🔇 الراوي: معطل";
+      if (!voiceEnabled) window.speechSynthesis.cancel();
+    }
+
+    function updateStatusBoard() {
+      const board = document.getElementById('status-board');
+      board.innerHTML = '<strong>حالة الشلة:</strong>';
+      players.forEach(p => {
+        board.innerHTML += `<div class="status-row"><span>${p.name}</span><span>${p.health}% (${p.status})</span></div>`;
+      });
+    }
+
+    function showEndGame() {
+      document.getElementById('game-screen').classList.add('hidden');
+      document.getElementById('end-screen').classList.remove('hidden');
+
+      const alive = players.filter(p => p.health > 0);
+      const title = document.getElementById('end-title');
+      const text = document.getElementById('end-story-text');
+
+      if (alive.length === players.length) {
+        title.innerText = "🎉 نجت الشلة بالكامل!";
+        text.innerText = "استطعتم الهروب من هذا الكابوس بنجاح وشجاعة!";
+      } else if (alive.length > 0) {
+        title.innerText = "🩸 نجا البعض وسقط الآخرون!";
+        text.innerText = "خرج بعضكم من المكان الملعون بينما ابتلع الظلام البقية.";
+      } else {
+        title.innerText = "💀 هلاك الجميع!";
+        text.innerText = "لقد قضت الكائنات الملعونة على الشلة بالكامل!";
+      }
+    }
+  </script>
+</body>
+</html>
